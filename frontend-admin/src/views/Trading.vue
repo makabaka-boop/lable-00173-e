@@ -144,6 +144,13 @@
         <el-form-item>
           <el-button type="primary" @click="submitOrder">提交订单</el-button>
           <el-button @click="resetForm">重置</el-button>
+          <el-button
+            :type="newOrder.code && watchlistStore.isInWatchlist(newOrder.code) ? 'warning' : 'default'"
+            :disabled="!newOrder.code"
+            @click="addToWatchlistFromOrder"
+          >
+            <el-icon><Star /></el-icon> 加入自选
+          </el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -153,12 +160,15 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useTradingStore } from '@/stores/trading'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { formatNumber, formatCurrency, formatDate } from '@/utils/format'
 import { tradingAPI } from '@/utils/api'
 import { ElMessage } from 'element-plus'
+import { Star } from '@element-plus/icons-vue'
 import type { Order } from '@/types'
 
 const tradingStore = useTradingStore()
+const watchlistStore = useWatchlistStore()
 const activeTab = ref('pending')
 
 const newOrder = ref({
@@ -242,6 +252,20 @@ const submitOrder = async () => {
   }
 }
 
+const addToWatchlistFromOrder = async () => {
+  if (!newOrder.value.code) return
+  if (watchlistStore.isInWatchlist(newOrder.value.code)) {
+    ElMessage.info('该股票已在自选列表中')
+    return
+  }
+  const result = await watchlistStore.addItem(newOrder.value.code, newOrder.value.code)
+  if (result.success) {
+    ElMessage.success('已加入自选')
+  } else {
+    ElMessage.error(result.message || '加入自选失败')
+  }
+}
+
 const fetchOrders = async () => {
   try {
     const userId = localStorage.getItem('userId')
@@ -264,6 +288,7 @@ const resetForm = () => {
 }
 
 onMounted(async () => {
+  watchlistStore.fetchList()
   await fetchOrders()
 })
 </script>

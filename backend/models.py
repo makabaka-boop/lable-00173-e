@@ -224,6 +224,34 @@ class KlineData(db.Model):
             'volume': self.volume,
         }
 
+class WatchlistItem(db.Model):
+    __tablename__ = 'watchlist_items'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    note = db.Column(db.String(500), default='')
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'code', name='uq_user_code'),)
+
+    user = db.relationship('User', backref='watchlist_items', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'name': self.name,
+            'note': self.note or '',
+            'sortOrder': self.sort_order,
+            'createdAt': int(self.created_at.timestamp() * 1000),
+            'updatedAt': int(self.updated_at.timestamp() * 1000),
+        }
+
+
 class OperationLog(db.Model):
     """操作日志模型"""
     __tablename__ = 'operation_logs'

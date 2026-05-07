@@ -107,6 +107,17 @@ export interface BacktestParams {
   parameters: Record<string, number>
 }
 
+// 自选股
+export interface WatchlistItem {
+  id: string | number
+  code: string
+  name: string
+  note: string
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+}
+
 // 市场数据
 export interface MarketData {
   timestamp: number

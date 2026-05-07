@@ -7,7 +7,7 @@
       </div>
       <button class="collapse-btn" @click="collapsed = !collapsed">
         <el-icon>
-          <component :is="collapsed ? 'expand-right' : 'fold'" />
+          <component :is="collapsed ? DArrowRight : Fold" />
         </el-icon>
       </button>
     </div>
@@ -38,8 +38,9 @@ import {
   ShoppingCart, 
   Briefcase, 
   Histogram,
+  Star,
   Fold,
-  ExpandRight
+  DArrowRight
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -47,10 +48,11 @@ const route = useRoute()
 const collapsed = ref(false)
 
 const navItems = [
-  { path: '/market', label: '行情中心', icon: 'DataAnalysis' },
-  { path: '/trading', label: '交易管理', icon: 'ShoppingCart' },
-  { path: '/positions', label: '持仓管理', icon: 'Briefcase' },
-  { path: '/backtest', label: '策略回测', icon: 'Histogram' },
+  { path: '/market', label: '行情中心', icon: DataAnalysis },
+  { path: '/trading', label: '交易管理', icon: ShoppingCart },
+  { path: '/watchlist', label: '自选股', icon: Star },
+  { path: '/positions', label: '持仓管理', icon: Briefcase },
+  { path: '/backtest', label: '策略回测', icon: Histogram },
 ]
 
 const isActive = (path: string) => route.path === path

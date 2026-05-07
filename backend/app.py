@@ -15,6 +15,7 @@ from routes.trading_routes import trading_bp
 from routes.position_routes import position_bp
 from routes.backtest_routes import backtest_bp
 from routes.log_routes import log_bp
+from routes.watchlist_routes import watchlist_bp
 
 # 导入工具函数
 from utils.auth import hash_password
@@ -41,6 +42,7 @@ app.register_blueprint(trading_bp)
 app.register_blueprint(position_bp)
 app.register_blueprint(backtest_bp)
 app.register_blueprint(log_bp)
+app.register_blueprint(watchlist_bp)
 
 
 def init_data():

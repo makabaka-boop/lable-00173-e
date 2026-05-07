@@ -94,6 +94,19 @@ export const backtestAPI = {
   deleteBacktest: (backtestId: number): Promise<ApiResponse> => api.delete(`/backtest/results/${backtestId}`),
 }
 
+// ==================== 自选股接口 ====================
+
+export const watchlistAPI = {
+  getList: (): Promise<ApiResponse> => api.get('/watchlist'),
+  addItem: (code: string, name: string, note?: string): Promise<ApiResponse> =>
+    api.post('/watchlist', { code, name, note: note || '' }),
+  deleteItem: (itemId: number): Promise<ApiResponse> => api.delete(`/watchlist/${itemId}`),
+  updateNote: (itemId: number, note: string): Promise<ApiResponse> =>
+    api.put(`/watchlist/${itemId}/note`, { note }),
+  reorder: (itemIds: number[]): Promise<ApiResponse> =>
+    api.put('/watchlist/reorder', { itemIds }),
+}
+
 // ==================== 健康检查 ====================
 
 export const healthAPI = {
