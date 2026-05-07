@@ -38,6 +38,7 @@ import {
   ShoppingCart, 
   Briefcase, 
   Histogram,
+  Star,
   Fold,
   ExpandRight
 } from '@element-plus/icons-vue'
@@ -47,10 +48,11 @@ const route = useRoute()
 const collapsed = ref(false)
 
 const navItems = [
-  { path: '/market', label: '行情中心', icon: 'DataAnalysis' },
-  { path: '/trading', label: '交易管理', icon: 'ShoppingCart' },
-  { path: '/positions', label: '持仓管理', icon: 'Briefcase' },
-  { path: '/backtest', label: '策略回测', icon: 'Histogram' },
+  { path: '/market', label: '行情中心', icon: DataAnalysis },
+  { path: '/watchlist', label: '自选股', icon: Star },
+  { path: '/trading', label: '交易管理', icon: ShoppingCart },
+  { path: '/positions', label: '持仓管理', icon: Briefcase },
+  { path: '/backtest', label: '策略回测', icon: Histogram },
 ]
 
 const isActive = (path: string) => route.path === path

@@ -128,3 +128,18 @@ export interface AccountStats {
   dayProfit: number
   dayProfitPercent: number
 }
+
+// 自选股
+export interface WatchlistItem {
+  id: number
+  userId: number
+  code: string
+  name: string
+  note?: string
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+  price?: number
+  change?: number
+  changePercent?: number
+}

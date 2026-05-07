@@ -42,9 +42,16 @@
         <el-table-column prop="pe" label="市盈率" min-width="70" align="right">
           <template #default="{ row }">{{ formatNumber(row.pe, 2) }}</template>
         </el-table-column>
-        <el-table-column label="操作" min-width="120" align="center">
+        <el-table-column label="操作" min-width="200" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="handleViewChart(row)">查看</el-button>
+            <el-button 
+              size="small" 
+              :type="watchlistStore.hasCode(row.code) ? 'success' : 'default'"
+              @click="handleToggleWatchlist(row)"
+            >
+              {{ watchlistStore.hasCode(row.code) ? '已收藏' : '加入自选' }}
+            </el-button>
             <el-button size="small" @click="handleBuy(row)">买入</el-button>
           </template>
         </el-table-column>
@@ -95,6 +102,13 @@
             <Chart ref="chartRef" type="candlestick" :data="marketStore.klineData" />
           </div>
           <div class="action-buttons">
+            <el-button 
+              :type="watchlistStore.hasCode(selectedStock.code) ? 'success' : 'default'" 
+              size="large" 
+              @click="handleToggleWatchlist(selectedStock)"
+            >
+              {{ watchlistStore.hasCode(selectedStock.code) ? '已收藏' : '加入自选' }}
+            </el-button>
             <el-button type="primary" size="large" @click="handleBuy(selectedStock)">买入</el-button>
             <el-button size="large" @click="showDetail = false">关闭</el-button>
           </div>
@@ -131,14 +145,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useMarketStore } from '@/stores/market'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { formatNumber, formatPercent, getPriceColor, getPriceSymbol, formatLargeNumber, formatCurrency } from '@/utils/format'
-import { marketAPI, tradingAPI } from '@/utils/api'
+import { marketAPI, tradingAPI, watchlistAPI } from '@/utils/api'
 import Chart from '@/components/Chart.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import type { Stock } from '@/types'
 
 const marketStore = useMarketStore()
+const watchlistStore = useWatchlistStore()
 
 const searchQuery = ref('')
 const currentSort = ref('default')
@@ -221,6 +237,65 @@ watch(() => marketStore.klineData, () => {
   }
 }, { deep: true })
 
+const handleToggleWatchlist = async (stock: Stock) => {
+  const exists = watchlistStore.hasCode(stock.code)
+  
+  if (exists) {
+    const item = watchlistStore.getItemByCode(stock.code)
+    if (!item) return
+    
+    try {
+      await ElMessageBox.confirm(
+        `确定要从自选股中移除 "${stock.name}" 吗？`,
+        '移除确认',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+      
+      const response = await watchlistAPI.removeItem(item.id)
+      if (response.code === 200) {
+        watchlistStore.removeItem(item.id)
+        ElMessage.success('已从自选股移除')
+      } else {
+        ElMessage.error(response.message || '移除失败')
+      }
+    } catch (error) {
+      if (error !== 'cancel') {
+        ElMessage.error('移除失败，请重试')
+      }
+    }
+  } else {
+    try {
+      const response = await watchlistAPI.addItem({
+        code: stock.code,
+        name: stock.name,
+      })
+      
+      if (response.code === 200) {
+        watchlistStore.addItem(response.data)
+        ElMessage.success('已加入自选股')
+      } else if (response.code === 409) {
+        ElMessage.warning(response.message || '该股票已在自选股中')
+      } else {
+        ElMessage.error(response.message || '添加失败')
+      }
+    } catch (error: any) {
+      const errStatus = error?.response?.status
+      const errMessage = error?.response?.data?.message
+      if (errStatus === 409) {
+        ElMessage.warning(errMessage || '该股票已在自选股中')
+      } else if (errStatus === 400) {
+        ElMessage.warning(errMessage || '添加失败')
+      } else {
+        ElMessage.error(errMessage || '添加失败，请重试')
+      }
+    }
+  }
+}
+
 const handleBuy = (stock: Stock) => {
   buyStock.value = stock
   buyForm.value.quantity = 100
@@ -253,6 +328,17 @@ const confirmBuy = async () => {
   }
 }
 
+const fetchWatchlist = async () => {
+  try {
+    const response = await watchlistAPI.getList()
+    if (response.code === 200) {
+      watchlistStore.setItems(response.data)
+    }
+  } catch (error) {
+    console.error('Failed to fetch watchlist:', error)
+  }
+}
+
 onMounted(async () => {
   try {
     const response: any = await marketAPI.getStocks()
@@ -263,6 +349,8 @@ onMounted(async () => {
     console.error('Failed to fetch stocks:', error)
     ElMessage.error('获取股票列表失败')
   }
+  
+  await fetchWatchlist()
 })
 </script>
 

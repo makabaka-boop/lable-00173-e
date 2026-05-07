@@ -6,6 +6,7 @@ import Trading from '@/views/Trading.vue'
 import Positions from '@/views/Positions.vue'
 import Backtest from '@/views/Backtest.vue'
 import Profile from '@/views/Profile.vue'
+import Watchlist from '@/views/Watchlist.vue'
 
 const routes = [
   {
@@ -46,6 +47,12 @@ const routes = [
     path: '/profile',
     name: 'Profile',
     component: Profile,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/watchlist',
+    name: 'Watchlist',
+    component: Watchlist,
     meta: { requiresAuth: true },
   },
 ]
