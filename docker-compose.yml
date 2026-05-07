@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: trading-system-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///trading_system.db
+      - FLASK_ENV=production
+    volumes:
+      - ./backend:/app
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+    container_name: trading-system-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - trading-network
+    restart: unless-stopped
+
+networks:
+  trading-network:
+    driver: bridge
