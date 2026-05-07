@@ -42,10 +42,17 @@
         <el-table-column prop="pe" label="市盈率" min-width="70" align="right">
           <template #default="{ row }">{{ formatNumber(row.pe, 2) }}</template>
         </el-table-column>
-        <el-table-column label="操作" min-width="120" align="center">
+        <el-table-column label="操作" min-width="160" align="center">
           <template #default="{ row }">
             <el-button type="primary" size="small" @click="handleViewChart(row)">查看</el-button>
             <el-button size="small" @click="handleBuy(row)">买入</el-button>
+            <el-button
+              size="small"
+              :type="watchlistStore.isInWatchlist(row.code) ? 'warning' : 'default'"
+              @click="addToWatchlist(row)"
+            >
+              <el-icon><Star /></el-icon>
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -96,6 +103,13 @@
           </div>
           <div class="action-buttons">
             <el-button type="primary" size="large" @click="handleBuy(selectedStock)">买入</el-button>
+            <el-button
+              size="large"
+              :type="watchlistStore.isInWatchlist(selectedStock.code) ? 'warning' : 'default'"
+              @click="addToWatchlist(selectedStock)"
+            >
+              <el-icon><Star /></el-icon> 加入自选
+            </el-button>
             <el-button size="large" @click="showDetail = false">关闭</el-button>
           </div>
         </div>
@@ -131,14 +145,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useMarketStore } from '@/stores/market'
+import { useWatchlistStore } from '@/stores/watchlist'
 import { formatNumber, formatPercent, getPriceColor, getPriceSymbol, formatLargeNumber, formatCurrency } from '@/utils/format'
 import { marketAPI, tradingAPI } from '@/utils/api'
 import Chart from '@/components/Chart.vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Star } from '@element-plus/icons-vue'
 import type { Stock } from '@/types'
 
 const marketStore = useMarketStore()
+const watchlistStore = useWatchlistStore()
 
 const searchQuery = ref('')
 const currentSort = ref('default')
@@ -221,6 +237,19 @@ watch(() => marketStore.klineData, () => {
   }
 }, { deep: true })
 
+const addToWatchlist = async (stock: Stock) => {
+  if (watchlistStore.isInWatchlist(stock.code)) {
+    ElMessage.info('该股票已在自选列表中')
+    return
+  }
+  const result = await watchlistStore.addItem(stock.code, stock.name)
+  if (result.success) {
+    ElMessage.success('已加入自选')
+  } else {
+    ElMessage.error(result.message || '加入自选失败')
+  }
+}
+
 const handleBuy = (stock: Stock) => {
   buyStock.value = stock
   buyForm.value.quantity = 100
@@ -254,6 +283,7 @@ const confirmBuy = async () => {
 }
 
 onMounted(async () => {
+  watchlistStore.fetchList()
   try {
     const response: any = await marketAPI.getStocks()
     if (response.code === 200) {
