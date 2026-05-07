@@ -142,6 +142,13 @@
           </el-col>
         </el-row>
         <el-form-item>
+          <el-button 
+            :type="currentCodeInWatchlist ? 'success' : 'default'" 
+            @click="addToWatchlist"
+            :disabled="!newOrder.code"
+          >
+            {{ currentCodeInWatchlist ? '已在自选股' : '加入自选' }}
+          </el-button>
           <el-button type="primary" @click="submitOrder">提交订单</el-button>
           <el-button @click="resetForm">重置</el-button>
         </el-form-item>
@@ -153,12 +160,16 @@
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue'
 import { useTradingStore } from '@/stores/trading'
+import { useWatchlistStore } from '@/stores/watchlist'
+import { useMarketStore } from '@/stores/market'
 import { formatNumber, formatCurrency, formatDate } from '@/utils/format'
-import { tradingAPI } from '@/utils/api'
+import { tradingAPI, watchlistAPI, marketAPI } from '@/utils/api'
 import { ElMessage } from 'element-plus'
-import type { Order } from '@/types'
+import type { Order, Stock } from '@/types'
 
 const tradingStore = useTradingStore()
+const watchlistStore = useWatchlistStore()
+const marketStore = useMarketStore()
 const activeTab = ref('pending')
 
 const newOrder = ref({
@@ -166,6 +177,10 @@ const newOrder = ref({
   type: 'buy' as 'buy' | 'sell',
   quantity: 100,
   price: 0,
+})
+
+const currentCodeInWatchlist = computed(() => {
+  return newOrder.value.code ? watchlistStore.hasCode(newOrder.value.code) : false
 })
 
 const pendingOrders = computed(() => 
@@ -254,6 +269,84 @@ const fetchOrders = async () => {
   }
 }
 
+const addToWatchlist = async () => {
+  if (!newOrder.value.code) {
+    ElMessage.warning('请先输入股票代码')
+    return
+  }
+
+  if (watchlistStore.hasCode(newOrder.value.code)) {
+    ElMessage.info('该股票已在自选股中')
+    return
+  }
+
+  let stockName = `股票(${newOrder.value.code})`
+  const localStock = marketStore.stocks.find(s => s.code === newOrder.value.code)
+  
+  if (localStock) {
+    stockName = localStock.name
+  } else {
+    try {
+      const stockResponse = await marketAPI.getStock(newOrder.value.code)
+      if (stockResponse.code === 200) {
+        stockName = stockResponse.data.name
+      }
+    } catch (error) {
+      console.error('Failed to get stock info:', error)
+    }
+  }
+
+  try {
+    const response = await watchlistAPI.addItem({
+      code: newOrder.value.code,
+      name: stockName,
+    })
+    
+    if (response.code === 200) {
+      watchlistStore.addItem(response.data)
+      ElMessage.success('已加入自选股')
+    } else if (response.code === 409) {
+      ElMessage.warning(response.message || '该股票已在自选股中')
+    } else {
+      ElMessage.error(response.message || '添加失败')
+    }
+  } catch (error: any) {
+    const errStatus = error?.response?.status
+    const errMessage = error?.response?.data?.message
+    if (errStatus === 409) {
+      ElMessage.warning(errMessage || '该股票已在自选股中')
+    } else if (errStatus === 400) {
+      ElMessage.warning(errMessage || '添加失败')
+    } else {
+      ElMessage.error(errMessage || '添加失败，请重试')
+    }
+  }
+}
+
+const fetchWatchlist = async () => {
+  try {
+    const response = await watchlistAPI.getList()
+    if (response.code === 200) {
+      watchlistStore.setItems(response.data)
+    }
+  } catch (error) {
+    console.error('Failed to fetch watchlist:', error)
+  }
+}
+
+const fetchStocks = async () => {
+  if (marketStore.stocks.length === 0) {
+    try {
+      const response = await marketAPI.getStocks()
+      if (response.code === 200) {
+        marketStore.setStocks(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch stocks:', error)
+    }
+  }
+}
+
 const resetForm = () => {
   newOrder.value = {
     code: '',
@@ -264,7 +357,7 @@ const resetForm = () => {
 }
 
 onMounted(async () => {
-  await fetchOrders()
+  await Promise.all([fetchOrders(), fetchWatchlist(), fetchStocks()])
 })
 </script>
 

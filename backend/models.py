@@ -25,6 +25,7 @@ class User(db.Model):
     orders = db.relationship('Order', backref='user', lazy=True, cascade='all, delete-orphan')
     trades = db.relationship('Trade', backref='user', lazy=True, cascade='all, delete-orphan')
     backtests = db.relationship('Backtest', backref='user', lazy=True, cascade='all, delete-orphan')
+    watchlist = db.relationship('WatchlistItem', backref='user', lazy=True, cascade='all, delete-orphan')
     
     def to_dict(self):
         return {
@@ -253,4 +254,32 @@ class OperationLog(db.Model):
             'ipAddress': self.ip_address,
             'userAgent': self.user_agent,
             'createdAt': int(self.created_at.timestamp() * 1000),
+        }
+
+class WatchlistItem(db.Model):
+    __tablename__ = 'watchlist'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    code = db.Column(db.String(20), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    note = db.Column(db.String(255), nullable=True)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'code', name='uq_user_code'),
+    )
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'userId': self.user_id,
+            'code': self.code,
+            'name': self.name,
+            'note': self.note,
+            'sortOrder': self.sort_order,
+            'createdAt': int(self.created_at.timestamp() * 1000),
+            'updatedAt': int(self.updated_at.timestamp() * 1000),
         }
